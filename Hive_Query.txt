@@ -1,0 +1,381 @@
+Create DataBase
+=================
+	hive> CREATE DATABASE IF NOT EXISTS userdb;
+	hive> SHOW DATABASES;
+	hive> describe database extended USERDB_BKP_EXT;
+	
+Drop DATABASE
+==============
+	hive> DROP DATABASE IF EXISTS userdb;
+	
+CREATE TABLES
+==============
+	Create Manage Tables
+	---------------------
+	hive> use UserDB;
+	hive> create table patient (pid INT, pname STRING,  drug STRING, gender STRING,tot_amt INT) row format delimited fields terminated by ',' stored as textfile;
+	
+	hive> load data local inpath '/home/dinesh/HadoopData/datagen_10.txt' into table patient;
+	hive> load data inpath '/dinesh/hadoop/data/datagen_10.txt' into table patient;
+	
+	hive> describe patient;
+	
+	hive> describe extended patient;
+	
+	Create External Table 
+	----------------------
+	create external table patientext (pid INT, pname STRING,  drug STRING, 	gender STRING, tot_amt INT) row format delimited fields terminated by ',' stored as textfile LOCATION '/dinesh/hadoop/data/patientext/';
+	
+Alter Table Statement
+======================
+	hive> create table patient_Alter (pid INT, pname STRING,  drug STRING, gender STRING,tot_amt INT) row format delimited fields terminated by ',' stored as textfile;
+	
+	Rename To… Statement
+	--------------------
+	hive> ALTER TABLE patient_Alter RENAME TO patientAlter;
+	
+	Change Statement
+	-----------------
+	hive> ALTER TABLE patientAlter CHANGE pname patientname String;
+	hive> describe patientAlter;
+	
+	Add Columns Statement
+	----------------------
+	hive> ALTER TABLE patientAlter ADD COLUMNS (dept STRING COMMENT 'Department name');
+	hive> describe patientalter;
+	
+Drop Table Statement
+=====================
+	hive> DROP TABLE IF EXISTS patientalter;
+	hive> SHOW TABLES;
+	
+BUILT – IN OPERATORS
+=====================
+	Relational Operators
+	--------------------
+	hive> select * from patient where tot_amt = 980;
+	hive> select * from patient where tot_amt >= 833;
+	
+	Arithmetic Operators
+	--------------------
+	hive> SELECT 20+30 ;
+	
+	Logical Operators
+	------------------
+	hive> select * from patient where tot_amt >= 833 AND pid > 3;
+	
+BUILT – IN FUNCTIONS
+====================
+	hive> SELECT round(2.65555, 2);
+	hive> SELECT floor(2.6);
+	
+	
+VIEWS 
+======
+	Creating a View
+	----------------
+	hive> CREATE VIEW patient_500 AS SELECT * FROM patient WHERE tot_amt >500;
+	
+	Dropping a View
+	---------------
+	hive> DROP VIEW patient_500;
+	
+HIVEQL SELECT … WHERE
+======================
+	HIVEQL SELECT … ORDER BY
+	-------------------------
+	hive> SELECT * FROM patient ORDER BY tot_amt;
+	
+	HIVEQL GROUP BY
+	----------------
+	hive> SELECT drug,sum(tot_amt) FROM patient GROUP BY drug;
+	
+HIVEQL JOINS
+=============
+
+	customer.txt
+	=========
+	1,Ramesh ,32,Ahmedabad,2000
+	2,Khilan ,25,Delhi,1500
+	3,kaushik,23,Kota,2000
+	4,Chaitali,25,Mumbai,6500
+	5,Hardik ,27,Bhopal,8500
+	6,Komal,22,MP,4500
+	7,Muffy,24,Indore,10000
+
+	hive> CREATE TABLE IF NOT EXISTS CUSTOMERS ( id int, name String, age int, address String, salary int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE;
+	hive> load data local inpath '/home/dinesh/HadoopData/customer.txt' into table CUSTOMERS;
+		
+	orders.txt
+	=======
+	102,2009-10-08 00:00:00,3,3000 
+	100,2009-10-08 00:00:00,3,1500 
+	101,2009-11-20 00:00:00,2,1560 
+	103,2008-05-20 00:00:00,4,2060
+	
+	hive> CREATE TABLE IF NOT EXISTS ORDERS ( oid int, Cdate String, CUSTOMER_ID int, AMOUNT  int) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE;
+	hive> load data local inpath '/home/dinesh/HadoopData/orders.txt' into table ORDERS;
+	
+	JOIN
+	=====
+	hive> SELECT c.ID, c.NAME, c.AGE, o.AMOUNT FROM CUSTOMERS c JOIN ORDERS o ON (c.ID = o.CUSTOMER_ID);
+			
+	LEFT OUTER JOIN
+	================
+	hive> SELECT c.ID, c.NAME, o.AMOUNT, o.CDATE FROM CUSTOMERS c LEFT OUTER JOIN ORDERS o ON (c.ID = o.CUSTOMER_ID);
+			
+	RIGHT OUTER JOIN
+	=================
+	hive> SELECT c.ID, c.NAME, o.AMOUNT, o.CDATE FROM CUSTOMERS c RIGHT OUTER JOIN ORDERS o ON (c.ID = o.CUSTOMER_ID);
+	
+	FULL OUTER JOIN
+	================
+	hive> SELECT c.ID, c.NAME, o.AMOUNT, o.CDATE FROM CUSTOMERS c FULL OUTER JOIN ORDERS o ON (c.ID = o.CUSTOMER_ID);
+	
+	Map-Side JOIN
+	=============
+	1)	Can use this, When need join small table and large table.
+	2)	Large table can be streamed through the mappers and small are cached in memory.
+	3)	Hive can also do all the join in map side, since it can look up every possible match against the small tables in memory.
+	4)	All the task performed by mapper only.
+	
+	hive> SELECT /*+ MAPJOIN(o) */ c.ID, c.NAME FROM CUSTOMERS c JOIN ORDERS o ON c.ID = o.CUSTOMER_ID;
+
+Hive Complex Data Types with Examples:
+======================================
+	There are three complex types in hive
+	-------------------------------------
+	1) arrays: It is an ordered collection of elements.The elements in the array must be of the same type.
+
+	2) map: It is an unordered collection of key-value pairs.Keys must be of primitive types.Values can be of any type.
+
+	3) struct: It is a collection of elements of different types.
+	
+	ARRAY: arrayfile.txt
+	----------------------
+	1,abc,40000,a$b$c,hyd
+	2,def,3000,d$f,bang
+	
+	hive> create table arrayfile(id int,name string,sal bigint,sub array<string>,city string)  row format delimited fields terminated by ',' collection items terminated by '$';
+	
+	hive> load data local inpath '/home/dinesh/HadoopData/arrayfile.txt' overwrite into table arrayfile;
+	
+	hive> select sub[2] from arrayfile where id=1;
+	
+	hive> select sub[0] from arrayfile;
+	
+	MAP: mapfile.txt
+	-----------------
+	1,abc,40000,a$b$c,pf#500$epf#200,hyd
+	2,def,3000,d$f,pf#500,bang
+	
+	hive> create table mapfile(id int,name string,sal bigint,sub array<string>,dud map<string,int>,city string) row format delimited fields terminated by ',' collection items terminated by '$' map keys terminated by '#';
+	
+	hive> load data local inpath '/home/dinesh/HadoopData/mapfile.txt' overwrite into table mapfile;
+	
+	hive> select dud["pf"] from mapfile;
+	
+	hive> select dud["pf"],dud["epf"] from mapfile;
+	
+	STRUCT: structfile.txt
+	-----------------------
+	1,abc,40000,a$b$c,pf#500$epf#200,hyd$ap$500001
+	2,def,3000,d$f,pf#500,bang$kar$600038
+	
+	hive> create table structfile(id int,name string,sal bigint,sub array<string>,dud map<string,int>,addr struct<city:string,state:string,pin:bigint>) row format delimited fields terminated by ',' collection items terminated by '$' map keys terminated by '#';
+	
+	hive> load data local inpath '/home/dinesh/HadoopData/structfile.txt' into table structfile;
+	
+	hive>select addr.city from structfile;
+	
+Hive Partition
+==============
+Static Partition in Hive
+=========================
+userrecords_1.txt
+-----------------
+first_name,last_name,address,city,post,phone1,phone2,email,web
+Rebbecca,Didio,171 E 24th St,Leith,7315,03-8174-9123,0458-665-290,rebbecca.didio@didio.com.au,http://www.brandtjonathanfesq.com.au
+Stevie,Hallo,22222 Acoma St,Proston,4613,07-9997-3366,0497-622-620,stevie.hallo@hotmail.com,http://www.landrumtemporaryservices.com.au
+Mariko,Stayer,534 Schoenborn St #51,Hamel,6215,08-5558-9019,0427-885-282,mariko_stayer@hotmail.com,http://www.inabinetmacreesq.com.au
+
+	Create TABLE and load data
+	--------------------------
+	hive> CREATE TABLE partitioned_user(firstname VARCHAR(64), lastname VARCHAR(64), address STRING, city VARCHAR(64), post STRING, phone1 VARCHAR(64),phone2 STRING,email STRING,web STRING ) PARTITIONED BY (country VARCHAR(64), state VARCHAR(64)) row format delimited fields terminated by ',' STORED AS TEXTFILE;
+	
+	
+	hive> DESCRIBE FORMATTED partitioned_user;
+	
+	hive> LOAD DATA LOCAL INPATH '${env:HOME}/userrecords_1.txt' INTO TABLE partitioned_user PARTITION (country = 'US', state = 'CA');
+	
+Dynamic Partition
+=================
+first_name,last_name,address,country,city,state,post,phone1,phone2,email,web
+Rebbecca,Didio,171 E 24th St,AU,Leith,TA,7315,03-8174-9123,0458-665-290,rebbecca.didio@didio.com.au,http://www.brandtjonathanfesq.com.au
+Stevie,Hallo,22222 Acoma St,AU,Proston,QL,4613,07-9997-3366,0497-622-620,stevie.hallo@hotmail.com,http://www.landrumtemporaryservices.com.au
+Mariko,Stayer,534 Schoenborn St #51,AU,Hamel,WA,6215,08-5558-9019,0427-885-282,mariko_stayer@hotmail.com,http://www.inabinetmacreesq.com.au
+Gerardo,Woodka,69206 Jackson Ave,AU,Talmalmo,NS,2640,02-6044-4682,0443-795-912,gerardo_woodka@hotmail.com,http://www.morrisdowningsherred.com.au
+Mayra,Bena,808 Glen Cove Ave,AU,Lane Cove,NS,1595,02-1455-6085,0453-666-885,mayra.bena@gmail.com,http://www.bueltdavidlesq.com.au
+Idella,Scotland,373 Lafayette St,AU,Cartmeticup,WA,6316,08-7868-1355,0451-966-921,idella@hotmail.com,http://www.artesianicecoldstorageco.com.au
+Sherill,Klar,87 Sylvan Ave,AU,Nyamup,WA,6258,08-6522-8931,0427-991-688,sklar@hotmail.com,http://www.midwayhotel.com.au
+Ena,Desjardiws,60562 Ky Rt 321,AU,Bendick Murrell,NS,2803,02-5226-9402,0415-961-606,ena_desjardiws@desjardiws.com.au,http://www.selsorrobertjesq.com.au
+Vince,Siena,70 S 18th Pl,AU,Purrawunda,QL,4356,07-3184-9989,0411-732-965,vince_siena@yahoo.com,http://www.vincentjpettico.com.au
+Theron,Jarding,8839 Ventura Blvd,AU,Blanchetown,SA,5357,08-6890-4661,0461-862-457,tjarding@hotmail.com,http://www.prentisspaulfesq.com.au
+Amira,Chudej,3684 N Wacker Dr,AU,Rockside,QL,4343,07-8135-3271,0478-867-289,amira.chudej@chudej.net.au,http://www.publicworksdepartment.com.au
+Marica,Tarbor,68828 S 32nd St #6,AU,Rosegarland,TA,7140,03-1174-6817,0494-982-617,marica.tarbor@hotmail.com,http://www.prudentiallightingcorp.com.au
+Shawna,Albrough,43157 Cypress St,AU,Ringwood,QL,4343,07-7977-6039,0441-255-802,shawna.albrough@albrough.com.au,http://www.woodjscottesq.com.au
+Paulina,Maker,6 S Hanover Ave,AU,Maylands,WA,6931,08-8344-8929,0420-123-282,paulina_maker@maker.net.au,http://www.swansonpetersonfnrlhomeinc.com.au
+Rose,Jebb,27916 Tarrytown Rd,AU,Wooloowin,QL,4030,07-4941-9471,0496-441-929,rose@jebb.net.au,http://www.oldcidermillgrove.com.au
+Reita,Tabar,79620 Timber Dr,AU,Arthurville,NS,2820,02-3518-7078,0431-669-863,rtabar@hotmail.com,http://www.coopermyersyco.com.au
+Maybelle,Bewley,387 Airway Cir #62,AU,Mapleton,QL,4560,07-9387-7293,0448-221-640,mbewley@yahoo.com,http://www.angelointernational.com.au
+Camellia,Pylant,570 W Pine St,AU,Tuggerawong,NS,2259,02-5171-4345,0423-446-913,camellia_pylant@gmail.com,http://www.blackleywilliamjpa.com.au
+Roy,Nybo,823 Fishers Ln,AU,Red Hill,AC,2603,02-5311-7778,0416-394-795,rnybo@nybo.net.au,http://www.phoenixphototype.com.au
+Albert,Sonier,4 Brookcrest Dr #7786,AU,Inverlaw,QL,4610,07-9354-2612,0420-575-355,albert.sonier@gmail.com,http://www.quartziteprocessinginc.com.au
+Hayley,Taghon,72 Wyoming Ave,AU,Eugowra,NS,2806,02-1638-4380,0491-976-291,htaghon@taghon.net.au,http://www.biltmoretextilecoinc.com.au
+Norah,Daleo,754 Sammis Ave,AU,Kotara Fair,NS,2289,02-5322-6127,0462-327-613,ndaleo@daleo.net.au,http://www.gatewayrefrigeration.com.au
+Rosina,Sidhu,660 N Green St,AU,Burpengary,QL,4505,07-6460-4488,0458-753-924,rosina_sidhu@gmail.com,http://www.anchorageyamaha.com.au
+	
+	Create Table and load data
+	---------------------------
+	set hive.exec.dynamic.partition=true;
+	set hive.exec.dynamic.partition.mode=nonstrict;
+	set hive.exec.max.dynamic.partitions.pernode=1000;
+
+	hive> DROP TABLE IF EXISTS partitioned_user;
+
+	hive> CREATE TEMPORARY TABLE temp_user(firstname VARCHAR(64),lastname  VARCHAR(64),address   STRING,country   VARCHAR(64),city      VARCHAR(64), state     VARCHAR(64),post      STRING,phone1    VARCHAR(64),phone2    STRING,email     STRING,web       STRING)ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE;
+
+	hive> LOAD DATA LOCAL INPATH '/root/hdp/hive/userrecords_2.txt' INTO TABLE temp_user;
+
+	hive> SELECT firstname, phone1, city FROM temp_user WHERE country='US' AND state='CA' ORDER BY city LIMIT 5;
+
+	hive> CREATE TABLE partitioned_user(firstname VARCHAR(64),lastname VARCHAR(64),address STRING,city VARCHAR(64),post STRING, phone1 VARCHAR(64),phone2 STRING,email STRING,web STRING) PARTITIONED BY (country VARCHAR(64), state VARCHAR(64)) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE;
+
+	hive> INSERT INTO TABLE partitioned_user PARTITION (country, state) SELECT firstname, lastname, address, city, post, phone1, phone2, email, web, country, state FROM temp_user;
+
+	hive> SELECT firstname, phone1, city FROM partitioned_user WHERE country='US' AND state='CA' ORDER BY city LIMIT 5;
+	
+	Show Partitioning:
+	------------------
+	hive> SHOW PARTITIONS partitioned_user;
+	
+Bucketing Hive
+==============
+	
+	Create and LOAD
+	================
+	set hive.exec.dynamic.partition=true;
+	set hive.exec.dynamic.partition.mode=nonstrict;
+	set hive.exec.max.dynamic.partitions.pernode=1000;
+	set hive.enforce.bucketing = true;
+
+	hive> DROP TABLE IF EXISTS bucketed_user;
+
+	hive> CREATE TEMPORARY TABLE temp_user(firstname VARCHAR(64), lastname VARCHAR(64), address STRING, country VARCHAR(64), city VARCHAR(64), state VARCHAR(64), post STRING, phone1 VARCHAR(64), phone2 STRING, email STRING, web STRING ) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n' STORED AS TEXTFILE;
+	 
+	hive> LOAD DATA LOCAL INPATH '/home/user/user_table.txt' INTO TABLE temp_user;
+
+	hive> CREATE TABLE bucketed_user(firstname VARCHAR(64), lastname VARCHAR(64), address STRING, city VARCHAR(64), state VARCHAR(64), post STRING, phone1 VARCHAR(64), phone2 STRING, email STRING, web STRING) COMMENT 'A bucketed sorted user table' PARTITIONED BY (country VARCHAR(64)) CLUSTERED BY (state) SORTED BY (city) INTO 10 BUCKETS STORED AS TEXTFILE;
+
+	hive> set hive.enforce.bucketing = true;
+	
+	hive> INSERT OVERWRITE TABLE bucketed_user PARTITION (country) SELECT firstname, lastname, address, city, state, post, phone1, phone2, email, web, country FROM temp_user;
+		
+		
+Analyze JSON Data using Hive
+=============================
+	hivejson.txt
+	-------------
+	{
+	  "DocId": "ABC",
+	  "User": {
+		"Id": 1234,
+		"Username": "sam1234",
+		"Name": "Sam",
+		"ShippingAddress": {
+		  "Address1": "123 Main St.",
+		  "Address2": null,
+		  "City": "Durham",
+		  "State": "NC"
+		},
+		"Orders": [
+		  {
+			"ItemId": 6789,
+			"OrderDate": "11/11/2012"
+		  },
+		  {
+			"ItemId": 4352,
+			"OrderDate": "12/12/2012"
+		  }
+		]
+	  }
+	}
+
+
+	Hive Schema:
+	------------
+	hive> CREATE TABLE complex_json (DocId string, JUser struct<Id:int, Username:string, Name: string, ShippingAddress:struct<Address1:string, Address2:string, City:string, State:string>, Orders:array<struct<ItemId:int, OrderDate:string>>>) ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe';
+
+	Load the data:
+	---------------
+	hive> LOAD DATA LOCAL INPATH '/tmp/complex.json' OVERWRITE INTO TABLE complex_json;
+
+	Hive Query:
+	--------------
+	hive> SELECT DocId, User.Id, User.ShippingAddress.City as city,User.Orders[0].ItemId as order0id,User.Orders[1].ItemId as order1id FROM complex_json;
+
+Processing Log Using Hive
+=========================
+	Web Log Format:
+	---------------
+	This format is Apache’s common web log file format. It is contains total of 7 fields. Below is the regular expression that can parse the apache’s common web log format.
+
+		
+	"^(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+.(\\S+\\s+\\S+).\\s+.(\\S+)\\s+(\\S+)\\s+(\\S+.\\S+).\\s+(\\S+)\\s+(\\S+)$"
+
+								 OR
+
+	"([^ ]*) ([^ ]*) ([^ ]*) (-|\\[[^\\]]*\\]) ([^ \"]*|\"[^\"]*\") (-|[0-9]*) (-|[0-9]*)"
+	
+	HiveQL Query:
+	-------------
+	hive> DROP TABLE IF EXISTS apache_common_log;
+
+	hive> CREATE TABLE apache_common_log (host STRING, identity STRING, luser STRING, time STRING, request STRING, status STRING, size STRING) ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.RegexSerDe' WITH SERDEPROPERTIES ("input.regex" = "([^ ]*) ([^ ]*) ([^ ]*) (-|\\[[^\\]]*\\]) ([^ \"]*|\"[^\"]*\") (-|[0-9]*) (-|[0-9]*)", "output.format.string" = "%1$s %2$s %3$s %4$s %5$s %6$s %7$s" ) STORED AS TEXTFILE;
+
+	LOAD DATA LOCAL INPATH "/home/siva/commonlog" INTO TABLE apache_common_log;
+
+	SELECT * FROM apache_common_log ORDER BY time LIMIT 5;
+	
+	
+	
+	Hadoop Log Analyze:
+	===================
+	DROP TABLE IF EXISTS hadoop_log;
+
+	CREATE TABLE hadoop_log (
+	  date1 STRING,
+	  time1 STRING,
+	  msgtype STRING,
+	  classname STRING,
+	  msgtext STRING
+	  )
+	ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.RegexSerDe'
+	WITH SERDEPROPERTIES (
+	  "input.regex" = "^(\\d{4}-\\d{2}-\\d{2})\\s+(\\d{2}.\\d{2}.\\d{2}.\\d{3})\\s+(\\S+)\\s+(\\S+)\\s+(.*)$",
+	  "output.format.string" = "%1$s %2$s %3$s %4$s %5$s"
+	)
+	STORED AS TEXTFILE;
+
+	LOAD DATA LOCAL INPATH "/home/user/hadooplog" INTO TABLE hadoop_log;
+
+	SELECT date1, time1, msgtext FROM hadoop_log WHERE msgtype='ERROR' OR msgtype='WARN' LIMIT 5;
+
+
+
+
+
+
+
+	
+
