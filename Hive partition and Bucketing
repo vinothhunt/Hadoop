@@ -1,0 +1,72 @@
+Hive Dynamic partition:
+
+set hive.exec.dynamic.partition=true;
+set hive.exec.dynamic.partition.mode=nonstrict
+create temporary table temp_us (txnno INT, txndate STRING, custno INT, amount DOUBLE, category STRING, product STRING, city STRING,state STRING, spendby STRING) row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+
+load data local inpath '/home/hduser/txns1' into table temp_us;
+
+create table txnrecordspar1(txnno INT, txndate STRING, custno INT, amount DOUBLE, category STRING, product STRING, city STRING, spendby STRING) partitioned by(state STRING) row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile
+
+insert into table txnrecordspar1 partition(state) select txnno,txndate,custno,amount,category,product,city,spendby,state from temp_us;
+
+show partitions txnrecordspar1;
+
+hdfs dfs -ls /user/hive/warehouse/inceptez.db/txnrecordspar1/
+
+Hive Bucketing:
+
+set hive.enforce.bucketing=true
+
+create temporary table temp_us (txnno INT, txndate STRING, custno INT, amount DOUBLE, category STRING, product STRING, city STRING,state STRING, spendby STRING) row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile
+
+load data local inpath '/home/hduser/txns1' into table temp_us;
+
+create table txnrecordsbuck(txnno INT, txndate STRING, custno INT, amount DOUBLE, category STRING, product STRING, city STRING, spendby STRING) partitioned by(state STRING) clustered by (city) into 5 buckets row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile;
+
+set hive.enforce.bucketing=true;
+
+insert into table txnrecordsbuck partition(state) select txnno,txndate,custno,amount,category,product,city,spendby,state from temp_us;
+
+Sqoop incremental load with example of job creation in sqoop:
+
+CREATE TABLE customer (custid INT,firstname VARCHAR(20),lastname VARCHAR(20),city varchar(50),age int,createdt date,transactamt int ); 
+insert into customer values(1,'Arun','Kumar','chennai',33,'2017-09-20',100000); 
+insert into customer values(2,'srini','vasan','chennai',33,'2017-09-21',10000); 
+insert into customer values(3,'vasu','devan','banglore',39,'2017-09-23',90000); 
+insert into customer values(4,'mohamed','imran','hyderabad',33,'2017-09-24',1000); 
+insert into customer values(5,'arun','basker','chennai',23,'2017-09-20',200000); 
+insert into customer values(6,'ramesh','babu','manglore',39,'2017-09-21',100000)
+
+
+Job creation: sqoop job --create sqoopimp -- import --connect jdbc:mysql://localhost/custdb --username root --password root -table customer -m 1 --target-dir /user/hduser/sqoopdir --incremental append --check-column custid --last-value 0;
+
+Simple sqoop import: sqoop import --connect jdbc:mysql://localhost/custdb --username root --password root -table customer -m 1 --target-dir /user/hduser/sqoopdir
+
+Manual giving last value: sqoop import --connect jdbc:mysql://localhost/custdb --username root --password root -table customer -m 1 --target-dir /user/hduser/sqoopdir --incremental append --check-column custid --last-value 6;
+
+checking dir:
+hdfs dfs -ls /user/hduser/sqoopdir/
+
+checking values:
+hdfs dfs -cat /user/hduser/sqoopdir/*
+
+
+creating external table in hive and pointing the hadoop directory:
+
+create external table customer(custid INT, firstname STRING, lastname STRING, city STRING, age INT, createdt STRING, transactamt int) row format delimited fields terminated by ',' lines terminated by '\n' stored as textfile location '/user/hduser/sqoopdir1';
+
+verifying the records:
+select * from customer;
+
+increment records in mysql:
+insert into customer values(7,'ramesh','babu','manglore',39,'2017-09-21',100000)
+insert into customer values(8,'ramesh','babu','manglore',39,'2017-09-21',100000)
+
+Running SQOOP JOb:
+sqoop job --exec sqoopimp;
+
+
+verifying the records:
+select * from customer;
+
